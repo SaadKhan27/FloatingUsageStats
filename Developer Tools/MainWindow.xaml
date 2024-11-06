@@ -1,0 +1,42 @@
+﻿<Window x:Class="DeveloperTools.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:DeveloperTools.ViewModels"
+        Title="Developer Tools" Height="750" Width="950"
+        Topmost="True" WindowStyle="None"  WindowState="Maximized"
+        AllowsTransparency="True" Background="Transparent">
+
+    <Canvas>
+        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Margin="10">
+            <!-- TextBox for entering application name -->
+            <TextBox Name="AppNameTextBox" Width="200" Margin="10" 
+                     Text="{Binding AppName, UpdateSourceTrigger=PropertyChanged}" 
+                     Visibility="{Binding TextBoxVisibility}" />
+
+            <!-- Button to refresh the app's CPU and RAM usage -->
+            <Button Content="Get App Usage" Width="100" Margin="10,5,0,0"
+                    Click="OnGetAppUsageClicked" Visibility="{Binding ButtonVisibility}" />
+        </StackPanel>
+
+        <!-- Draggable CPU and RAM usage TextBlocks -->
+        <TextBlock x:Name="CpuUsageTextBlock" 
+                   Text="{Binding CpuUsagePercentage}" 
+                   Foreground="{Binding CpuUsageColor}" 
+                   FontSize="16" 
+                   MouseDown="OnTextBlockMouseDown" 
+                   MouseMove="OnTextBlockMouseMove" 
+                   MouseUp="OnTextBlockMouseUp" 
+                   Canvas.Left="10" 
+                   Canvas.Top="100" />
+
+        <TextBlock x:Name="RamUsageTextBlock" 
+                   Text="{Binding RamUsagePercentage}" 
+                   Foreground="{Binding RamUsageColor}" 
+                   FontSize="16" 
+                   MouseDown="OnTextBlockMouseDown" 
+                   MouseMove="OnTextBlockMouseMove" 
+                   MouseUp="OnTextBlockMouseUp" 
+                   Canvas.Left="10" 
+                   Canvas.Top="140" />
+    </Canvas>
+</Window>
