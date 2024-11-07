@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
@@ -16,12 +17,61 @@ namespace DeveloperTools.ViewModels
         private string _ramUsagePercentage;
         private string _appName;
         private Visibility _textBoxVisibility;
+        private Visibility _textBoxVisibilityCpuUsage;
+        private Visibility _textBoxVisibilityMemoryUsage;
         private Visibility _buttonVisibility;
         private Brush _cpuUsageColor;
         private Brush _ramUsageColor;
         private DispatcherTimer _timer;
+        private ObservableCollection<string> _filteredAppNames;
+        private string _selectedAppName;
+        private ObservableCollection<string> _allAppNames; // Keep original list
 
-        // Property for the process name entered in the TextBox
+        public MainViewModel()
+        {
+            // Initially show the ComboBox and Button
+            TextBoxVisibility = Visibility.Visible;
+            ButtonVisibility = Visibility.Visible;
+            CpuUsageColor = Brushes.Black;
+            RamUsageColor = Brushes.Black;
+            _allAppNames = new ObservableCollection<string>();
+
+            // Initialize the filtered app names and load running processes
+            FilteredAppNames = new ObservableCollection<string>();
+            LoadRunningProcesses();
+
+            // Initialize the timer but don't start it yet
+            _timer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromSeconds(1) // Update every second
+            };
+            _timer.Tick += (sender, e) => UpdateResources();
+        }
+
+        // Collection of filtered app names
+        public ObservableCollection<string> FilteredAppNames
+        {
+            get => _filteredAppNames;
+            set
+            {
+                _filteredAppNames = value;
+                OnPropertyChanged(nameof(FilteredAppNames));
+            }
+        }
+
+        // Property for the selected app name in the ComboBox
+        public string SelectedAppName
+        {
+            get => _selectedAppName;
+            set
+            {
+                _selectedAppName = value;
+                AppName = value; // Set AppName to the selected app
+                OnPropertyChanged(nameof(SelectedAppName));
+            }
+        }
+
+        // Property for the process name entered in the ComboBox
         public string AppName
         {
             get => _appName;
@@ -32,7 +82,7 @@ namespace DeveloperTools.ViewModels
             }
         }
 
-        // Property for TextBox visibility
+        // Property for ComboBox visibility
         public Visibility TextBoxVisibility
         {
             get => _textBoxVisibility;
@@ -42,6 +92,31 @@ namespace DeveloperTools.ViewModels
                 OnPropertyChanged(nameof(TextBoxVisibility));
             }
         }
+
+
+        // Property for CpuUsageTextBox visibility
+        public Visibility TextBoxVisibilityCpuUsage
+        {
+            get => _textBoxVisibilityCpuUsage;
+            set
+            {
+                _textBoxVisibilityCpuUsage = value;
+                OnPropertyChanged(nameof(TextBoxVisibilityCpuUsage));
+            }
+        }
+
+
+        // Property for MemoryUsageTextBox visibility
+        public Visibility TextBoxVisibilityMemoryUsage
+        {
+            get => _textBoxVisibilityMemoryUsage;
+            set
+            {
+                _textBoxVisibilityMemoryUsage = value;
+                OnPropertyChanged(nameof(TextBoxVisibilityMemoryUsage));
+            }
+        }
+
 
         // Property for Button visibility
         public Visibility ButtonVisibility
@@ -120,24 +195,8 @@ namespace DeveloperTools.ViewModels
             }
         }
 
-        // Constructor for the ViewModel
-        public MainViewModel()
-        {
-            // Initially show the TextBox and Button
-            TextBoxVisibility = Visibility.Visible;
-            ButtonVisibility = Visibility.Visible;
-            CpuUsageColor = Brushes.Black;
-            RamUsageColor = Brushes.Black;
-
-            // Initialize the timer but don't start it yet
-            _timer = new DispatcherTimer
-            {
-                Interval = TimeSpan.FromSeconds(1) // Update every second
-            };
-            _timer.Tick += (sender, e) => UpdateResources();
-        }
-
-        // Method to update resources (CPU/RAM) for the given app
+        // Method to update resources (CPU/RAM) for the selected app
+       
         public void UpdateResources()
         {
             if (string.IsNullOrEmpty(AppName))
@@ -145,32 +204,68 @@ namespace DeveloperTools.ViewModels
                 return;
             }
 
-            // Get the selected process by the name entered in the TextBox
             var selectedProcess = Process.GetProcessesByName(AppName).FirstOrDefault();
 
             if (selectedProcess != null)
             {
-                // Get CPU usage (simplified method)
                 CpuUsage = GetCpuUsage(selectedProcess);
                 CpuUsagePercentage = $"{CpuUsage:F2}%";
 
-                // Get RAM usage
                 RamUsage = selectedProcess.PrivateMemorySize64 / (1024.0 * 1024.0); // MB
                 RamUsagePercentage = $"{RamUsage:F2} MB";
 
-                // Change color based on thresholds
                 CpuUsageColor = CpuUsage > 10 ? Brushes.Red : Brushes.Green;
                 RamUsageColor = RamUsage > 500 ? Brushes.Red : Brushes.Green;
 
-                // Hide TextBox and Button after usage is fetched
+                // Hide the ComboBox and Button as the app is running
                 TextBoxVisibility = Visibility.Collapsed;
                 ButtonVisibility = Visibility.Collapsed;
                 StartUpdatingResources();
             }
             else
             {
+                // If the app is not found, show the ComboBox and Button
                 CpuUsagePercentage = "App not found.";
                 RamUsagePercentage = "N/A";
+
+                // Reset visibility to show ComboBox and Button again
+                TextBoxVisibility = Visibility.Visible;
+                ButtonVisibility = Visibility.Visible;
+                TextBoxVisibilityCpuUsage = Visibility.Hidden;
+                TextBoxVisibilityMemoryUsage = Visibility.Hidden;
+
+            }
+        }
+
+
+
+
+        public void FilterAppNames(string filter)
+        {
+            FilteredAppNames.Clear(); // Clear the existing items
+
+            var processNames = string.IsNullOrEmpty(filter)
+                ? _allAppNames // Show all app names if filter is empty
+                : _allAppNames.Where(name => name.StartsWith(filter, StringComparison.OrdinalIgnoreCase));
+
+            foreach (var name in processNames)
+            {
+                FilteredAppNames.Add(name);
+            }
+        }
+
+
+        private void LoadRunningProcesses()
+        {
+            var processNames = Process.GetProcesses()
+                .Select(p => p.ProcessName)
+                .Distinct()
+                .OrderBy(name => name);
+
+            foreach (var name in processNames)
+            {
+                _allAppNames.Add(name); // Populate the original list
+                FilteredAppNames.Add(name); // Populate the display list
             }
         }
 
@@ -183,7 +278,6 @@ namespace DeveloperTools.ViewModels
         // Simplified method to calculate CPU usage
         private double GetCpuUsage(Process process)
         {
-            // Simplified calculation
             return process.TotalProcessorTime.TotalMilliseconds / (Environment.ProcessorCount * 1000);
         }
 

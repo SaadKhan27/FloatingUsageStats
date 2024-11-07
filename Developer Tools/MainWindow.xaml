@@ -9,13 +9,24 @@
     <Canvas>
         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Margin="10">
             <!-- TextBox for entering application name -->
-            <TextBox Name="AppNameTextBox" Width="200" Margin="10" 
-                     Text="{Binding AppName, UpdateSourceTrigger=PropertyChanged}" 
-                     Visibility="{Binding TextBoxVisibility}" />
-
+            <!-- ComboBox for entering application name with filter -->
+            <ComboBox Name="AppNameComboBox" Width="200" Margin="10" 
+                      Text="{Binding AppName, UpdateSourceTrigger=PropertyChanged}"
+                      ItemsSource="{Binding FilteredAppNames}"
+                      IsEditable="True" 
+                      SelectedItem="{Binding SelectedAppName}"   Visibility="{Binding TextBoxVisibility}">
+                <ComboBox.Style>
+                    <Style TargetType="ComboBox">
+                        <Setter Property="IsTextSearchEnabled" Value="False"/>
+                    </Style>
+                </ComboBox.Style>
+            </ComboBox>
             <!-- Button to refresh the app's CPU and RAM usage -->
             <Button Content="Get App Usage" Width="100" Margin="10,5,0,0"
                     Click="OnGetAppUsageClicked" Visibility="{Binding ButtonVisibility}" />
+
+            <Button Content="Exit" Width="100" Margin="10,5,0,0"
+                    Click="Button_Click" Visibility="{Binding ButtonVisibility}" />
         </StackPanel>
 
         <!-- Draggable CPU and RAM usage TextBlocks -->
@@ -27,7 +38,7 @@
                    MouseMove="OnTextBlockMouseMove" 
                    MouseUp="OnTextBlockMouseUp" 
                    Canvas.Left="10" 
-                   Canvas.Top="100" />
+                   Canvas.Top="100" Visibility="{Binding TextBoxVisibilityCpuUsage}" />
 
         <TextBlock x:Name="RamUsageTextBlock" 
                    Text="{Binding RamUsagePercentage}" 
@@ -37,6 +48,6 @@
                    MouseMove="OnTextBlockMouseMove" 
                    MouseUp="OnTextBlockMouseUp" 
                    Canvas.Left="10" 
-                   Canvas.Top="140" />
+                   Canvas.Top="140"  Visibility="{Binding TextBoxVisibilityMemoryUsage}" />
     </Canvas>
 </Window>

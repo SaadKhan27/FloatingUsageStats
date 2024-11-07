@@ -1,4 +1,6 @@
 ﻿using DeveloperTools.ViewModels;
+using System;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -12,14 +14,45 @@ namespace DeveloperTools
         private Point _startPoint;
         private UIElement _dragElement;
 
+        // Import user32.dll to make this window always stay on top
+        [DllImport("user32.dll")]
+        private static extern bool SetForegroundWindow(IntPtr hWnd);
+
         public MainWindow()
         {
             InitializeComponent();
             viewModel = new MainViewModel();
             this.DataContext = viewModel;
+
+            // Ensure the window stays on top
+            this.Topmost = true;
+            this.Deactivated += MainWindow_Deactivated;
+            // Set up the ComboBox text changed event for filtering
+            AppNameComboBox.AddHandler(TextBox.TextChangedEvent, new TextChangedEventHandler(OnAppNameTextChanged));
+
         }
 
-        // MouseDown event handler for both TextBlocks
+        private void MainWindow_Deactivated(object sender, EventArgs e)
+        {
+            // Keep the window on top and set it as the foreground window
+            this.Topmost = true;
+            SetForegroundWindow(new System.Windows.Interop.WindowInteropHelper(this).Handle);
+        }
+
+
+
+        // Filter the ComboBox items based on the text entered
+        private void OnAppNameTextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (sender is ComboBox comboBox && viewModel != null)
+            {
+                // Update the filtered list in the ViewModel based on the ComboBox text
+                viewModel.FilterAppNames(comboBox.Text);
+            }
+        }
+
+
+        // MouseDown event handler for TextBlocks
         private void OnTextBlockMouseDown(object sender, MouseButtonEventArgs e)
         {
             _isDragging = true;
@@ -28,7 +61,7 @@ namespace DeveloperTools
             _dragElement.CaptureMouse();
         }
 
-        // MouseMove event handler for dragging
+        // MouseMove event handler for dragging TextBlocks
         private void OnTextBlockMouseMove(object sender, MouseEventArgs e)
         {
             if (_isDragging && _dragElement != null)
@@ -64,6 +97,11 @@ namespace DeveloperTools
         {
             viewModel.UpdateResources(); // Call the method to update CPU and RAM usage
             viewModel.StartUpdatingResources(); // Start the timer to keep updating
+        }
+
+        private void Button_Click(object sender, RoutedEventArgs e)
+        {
+            Application.Current.Shutdown();
         }
     }
 }
